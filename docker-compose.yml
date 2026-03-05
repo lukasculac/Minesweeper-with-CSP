@@ -1,0 +1,31 @@
+services:
+
+  backend:
+    build: ./backend
+    container_name: minesweeper-backend
+    ports:
+      - "0.0.0.0:8000:8000"
+    environment:
+      - PYTHONUNBUFFERED=1
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        # nginx proxies /ws → backend container, so from the browser's POV
+        # the WebSocket lives on the same host:port as the page.
+        VITE_WS_URL: ws://localhost/ws
+    container_name: minesweeper-frontend
+    ports:
+      # Bind to all interfaces so friends on the same WiFi can connect
+      - "0.0.0.0:8080:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
